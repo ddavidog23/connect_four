@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu&display=swap');
+
+body {
+  font-family: 'Ubuntu', sans-serif;
+  text-align: center;
+}
+
+h1 h2 h3 {
+  text-align: center;
+}
+
+.hidden{
+  display: none;
+}
+
+.shown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+#divLogin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#divBoard {
+  position: relative;
+  width: 640px;
+  height: 480px;
+  background-image: url('./images/board.png');
+}
+
+.divCell {
+  width: 89px;
+  height: 79px;
+  float: left;
+  border-radius: 50%;
+}
+
+.played {
+  cursor: not-allowed;
+}
+
+#btnLeaveGame {
+  display: inline-block;
+  outline: none;
+  cursor: pointer;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 12px 24px;
+  border: 0;
+  color: #000021;
+  background: #1de9b6;
+  line-height: 1.15;
+  font-size: 16px;
+}
+
+#btnLeaveGame button :hover {
+    transition: all .1s ease;
+    box-shadow: 0 0 0 0 #fff, 0 0 0 3px #1de9b6;
+}
+
+.input-field {
+  margin: 5px;
+  font-size: 14px;
+  border-radius: 6px;
+  line-height: 1.5;
+  padding: 5px 10px;
+  transition: box-shadow 100ms ease-in, border 100ms ease-in, background-color 100ms ease-in;
+  border: 2px solid #dee1e2;
+  color: rgb(14, 14, 16);
+  background: #dee1e2;
+  display: block;
+  height: 36px;
+}
+
+.input-field button :hover {
+  border-color: #f44646;
+}
+
+.input-field button :focus {
+  border-color: #9147ff;
+  background: #fff;
+}

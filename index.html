@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect Four</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="./client_tools.js"></script>
+  <script>
+    let divLogin, divLobby, divGame;
+    let pMessage, txtusername, txtPassword;
+    let username, password;
+    let btnLogin;
+    let divUsersInLobby;
+    let btnLeaveGame;
+    let gameId, lblGameId;
+    let divBoard;
+    let divCells = [];
+    let currentPlayer = 1;
+    let pCurrentplayer;
+    let win = false;
+    function init() {
+      divLogin = document.getElementById('divLogin');
+      divLobby = document.getElementById('divLobby');
+      divGame = document.getElementById('divGame');
+      pMessage = document.getElementById('pMessasge');
+      btnLogin = document.getElementById('btnLogin');
+      txtUsername = document.getElementById('txtUsername');
+      txtPassword = document.getElementById('txtPassword');
+      divUsersInLobby = document.getElementById('divUsersInLobby');
+      btnLeaveGame = document.getElementById('btnLeaveGame');
+      lblGameId = document.getElementById('lblGameId');
+      divBoard = document.getElementById('divBoard');
+      pCurrentplayer = document.getElementById('pCurrentplayer');
+      winner = document.getElementById('winner');
+      txtPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          btnLogin.click();
+        }
+      })
+
+      for (let i = 0; i < 42; i++) {
+        let divCell = document.createElement('div');
+        divCell.className = 'divCell';
+        divCells.push(divCell);
+        divCell.i = i;
+        divCell.onclick = () => {
+          if (divCell.classList.contains('played')) {
+            return;
+          }
+          if (currentPlayer == 1) {
+            currentPlayer = 2;
+          } else {
+            currentPlayer = 1;
+          }
+          
+          sendHttpGetRequest('api/play_cell?username='+username+'&password='+password+'&id='+gameId+'&cell='+i, (result) => {
+            if (result == 'WIN') {
+              console.log('winner');
+            }
+          })
+          
+        };
+        divBoard.appendChild(divCell);
+      }
+    }
+
+    function removeAllChildNodes(node){
+      while(node.firstChild)
+          node.removeChild(node.firstChild);
+    }
+
+    function hide(e) {
+      e.classList.remove('shown');
+      e.classList.add('hidden');
+    }
+
+    function show(e) {
+      e.classList.add('shown');
+      e.classList.remove('hidden')
+    }
+
+    function switchTo(from,to){
+      hide(from);
+      show(to);
+    }
+
+    function btnLoginSignupClicked(loginOrSignup) {
+      username = txtUsername.value;
+      password = txtPassword.value;
+      if(!username || !password) {
+        pMessage.innerHTML = 'username and password are required.'
+      };
+      sendHttpGetRequest('api/' + loginOrSignup + '?username=' + username + '&password=' + password, (response)=>{
+        if(response == 'OK') {
+          divLogin.style.display = 'none';
+          switchTo(divLogin, divLobby);
+          getLobby();
+        } else if(response == 'taken') {
+          pMessage.innerHTML = 'username is taken';
+        } else if(response == "username and password are required."){
+          pMessage.innerHTML = 'please enter a username and a password'
+        } else if(response == 'wrong') {
+          pMessage.innerHTML = 'Wrong username or password';
+        } else if(response == 'sorry about that.') {
+          pMessage.innerHTML = 'Something went wrong. Please try again.'
+        }
+      });
+    }
+
+
+    function getLobby() {
+      sendHttpGetRequest('api/get_lobby?username='+username+'&password='+password, (result)=>{
+        let usersInLobby = JSON.parse(result);
+        removeAllChildNodes(divUsersInLobby);
+        let existsInList = false;
+        for(let i=0;i<usersInLobby.length;i++) {
+          if(usersInLobby[i].username == username){
+            existsInList = true;
+            continue;
+          } 
+          let p = document.createElement('p');
+          p.innerHTML = usersInLobby[i].username;
+          divUsersInLobby.appendChild(p);
+          p.onclick = (e)=>{
+            let partner = e.target.innerHTML;
+            sendHttpGetRequest('api/start_game?username='+username+'&password='+password+'&partner='+partner,(result)=>{
+              if(result == 'error'){
+                alert('error, try again');
+              }
+            });
+          };
+        }
+        if(existsInList){
+          setTimeout(getLobby, 500);
+        } else {
+          sendHttpGetRequest('api/get_game_id?username='+username+'&password='+password,(result)=>{
+            if (result) {
+              gameId = parseInt(result);
+              lblGameId.innerHTML = 'Game ID: ' + gameId;
+              switchTo(divLobby, divGame);
+              getGameStatus();
+            }
+          });
+        };
+      });
+    }
+
+    function leaveGame(){
+      sendHttpGetRequest('api/leave_game?username='+username+'&password='+password,(result)=>{
+        console.log(result);
+        if(result == 'OK' || result === '-1'){
+          console.log(result);
+          switchTo(divGame, divLobby);
+          getLobby();
+        }
+      })
+    }
+
+    function getGameStatus() {
+      sendHttpGetRequest('api/get_game_status?username='+username+'&password='+password+'&id='+gameId,(result)=>{
+        let gameStatus = JSON.parse(result);
+        if (gameStatus.active) {
+          for (let i = 0; i < 42; i++) {
+            let cellStatus = gameStatus.board[i];
+            if (cellStatus == 0) {
+              divCells[i].innerHTML = ''
+            } else if (cellStatus == 1) {
+              divCells[i].style.backgroundColor = 'yellow';
+            } else if (cellStatus == 2) {
+              divCells[i].style.backgroundColor = 'red'
+            }
+          }
+          setTimeout(getGameStatus, 500)
+        } else {
+          switchTo(divGame, divLobby);
+          getLobby();
+        }
+      })
+    }
+
+
+  </script>
+</head>
+<body onload="init()">
+  <div id="divLogin" class="shown">
+    <h2>Login/Signup</h2>
+    <p style="font-weight: bold;">username: <input type="text" autofocus id="txtUsername"></p>
+    <p style="font-weight: bold;">password: <input type="password" id="txtPassword"></p>
+    <button class = 'input-field' id= 'btnLogin' onclick="btnLoginSignupClicked('login')">Login</button>
+    <button class="input-field" onclick="btnLoginSignupClicked('signup')">Sign Up</button>
+    <p id="pMessage"></p>
+    <div class="random"></div>
+  </div>
+  <div id="divLobby" class="hidden">
+    <h2>Game Lobby</h2>
+    <h3 id="winner"></h3>
+    <div id="divUsersInLobby"></div>
+  </div>
+  <div id="divGame" class="hidden">
+    <h2>Game Room</h2>
+    <p id="lblGameId">
+    </p>
+    <div id="container">
+      <div id="divBoard">
+  
+      </div>
+    </div>
+    <p><button id="btnLeaveGame" onclick="leaveGame()">Leave Game</button></p>
+  </div>
+</body>
+</html>
+
+
+
+<!-- for (let i = 0; i < 42; i++) {
+  let divCell = document.createElement('div');
+  divCell.className = 'divCell';
+  divCells.push(divCell);
+  divCell.i = i;
+  divCell.onclick = () => {
+    divCell.classList.add('played');
+    if (divCell[i+7].classList.contains('played')) {
+      divCell.addEventListener('click', (e)=>{
+        e.preventDefault();
+      })
+    }
+    sendHttpGetRequest('api/play_cell?username='+username+'&password='+password+'&id='+gameId+'&cell='+i, (result) => {
+      if (result) {
+
+      }
+    });
+  };
+  divBoard.appendChild(divCell);
+}
+} -->
